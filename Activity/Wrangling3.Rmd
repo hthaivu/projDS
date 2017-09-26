@@ -1,6 +1,6 @@
 ---
 title: "| Projects in Data Science    \n| Activity A3b: Joins\n"
-author: "INSERT STUDENT NAME HERE"
+author: "Hoang Anh Thai Vu"
 output:
   bookdown::tufte_html2:
     number_sections: no
@@ -27,6 +27,7 @@ library(ggplot2)
 library(ggmap)
 library(tint)
 library(lubridate)
+library(scales)
 knitr::opts_chunk$set(tidy = FALSE, message=FALSE, cache.extra = packageVersion('tufte'))
 options(htmltools.dir.version = FALSE)
 ```
@@ -236,9 +237,20 @@ JGrades %>%
 For each of these questions, say what tables you need to join and identify the corresponding variables.
 
 a. How many student enrollments in each department?
+
+No need to join table. We can just use the Courses table and then group_by %>% summarise
+
 #. What's the grade-point average (GPA) for each student?
+
+We merge Grades and Courses by sessionID, so that we could identify the semester for each student. Then we group_by students and semester, and then average the grades.
+
 #. What fraction of grades are below B+?
+
+We only need to look at Grades table, assuming we are doing this for the whole school across all time. If we would like to do it by terms or departments, then we need to merge Courses with Grades. Then we filter and look at grades. 
+
 #. What's the grade-point average for each department or instructor?
+
+Again, merge Grades with Courses by sessionID. Then we group_by department or instructor, and take the average of grades. 
 
 ```
 
@@ -286,6 +298,45 @@ Make the following plots and interpret them:
 
 ```
 
+a.
+
+```{r}
+ggplot(Trips,aes(sdate))+
+  geom_density()+
+  labs(x="Date",title="Rentals by Date",subtitle="Washington D.C. Bike-renting")
+```
+
+b.
+
+```{r}
+Trips <- Trips %>%
+  mutate(daytime=(hour(sdate)+minute(sdate)/60))
+ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density()
+```
+
+c. 
+
+```{r}
+Trips <- Trips %>%
+  mutate(weekday=wday(sdate))
+c <- ggplot(Trips,aes(x=weekday))+
+  geom_density()+
+  labs(x="Week Day",title="Rentals by Week Day",subtitle="Washington D.C. Bike-renting")
+c
+```
+
+  d.
+
+```{r}
+ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density()+
+  facet_grid(weekday~.)
+```
+
+People go out earlier during the weekends!!!!
 
 `r newthought('The variable')` `client` describes whether the renter is a regular user (level `Registered`) or has not joined the bike-rental organization (`Causal`). Do you think these two different categories of users show different rental behavior? How might it interact with the patterns you found in Exercise \@ref(exr:exr-temp)?
 
@@ -300,17 +351,81 @@ Repeat the graphic from Exercise \@ref(exr:exr-temp) (d) with the following chan
 
 ```
 
+a.
+
+```{r}
+ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density(aes(fill=client),alpha=0.2)
+```
+
+b.
+
+```{r}
+ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density(aes(fill=client),alpha=0.2,position=position_stack())
+```
+
+
+It depends. If we would like to observe the distribution of each client group, the first one is better. But the second one tells a good story about how the fraction between the two groups change during the day within the overall distribution.
+
+c.
+
+```{r}
+Trips <- Trips %>%
+  mutate(wday = ifelse(lubridate::wday(sdate) %in% c(1,7), "weekend", "weekday"))
+```
+
+The code separate weekend and weekday. 
+
+```{r}
+c<-ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density(aes(fill=client),alpha=0.2)+
+  facet_grid(wday~.)
+c
+```
+
+d.
+
+```{r}
+ggplot(Trips,aes(daytime))+
+  labs(x="Hours",title="Rentals by hours",subtitle="Washington D.C. Bike-renting")+
+  geom_density(aes(fill=wday),alpha=0.2)+
+  facet_grid(client~.)
+```
+
+I prefer the facet by weekday, so that I could compare the two types of clients. But each tells a different story.
+
+e. 
+
+I really like the facet by weekday, fill by client. It shows the different in behaviors between client types, weekday and weekend. Basically, casual renters behave like registered renters during weekend.
+
+```{r}
+c
+```
 
 ## Mutating join practice: Spatial patterns
 
 ```{exercise, name="Visualization of bicycle departures by station"}
 Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. To layer your data on top of a Google map, start your plotting code as follows:
-
 ```
 
+```{r}
+totalTrips<-Trips%>%
+  group_by(sstation)%>%
+  summarise(totalDep=n())
+Stations <- Stations %>%
+  left_join(totalTrips,by=c("name"="sstation"))
 ```
+
+```{r}
 myMap <- get_map(location="Logan Circle",source="google",maptype="roadmap",zoom=13)
-ggmap(myMap) + ...
+ggmap(myMap)+
+  geom_point(data=Stations,aes(x=long, y=lat, color=totalDep,size=totalDep),alpha=0.6)+
+  scale_colour_gradient(low="#323FFA",high="#D50000")+
+  labs(title="Departures from Each Stations",subtitle="Washington D.C. Rental Bikes")
 ```
 
 
@@ -319,7 +434,23 @@ Only 14.4% of the trips in our data are carried out by casual users.^[We can com
 
 ```
 
+```{r}
+casualTrips<-Trips%>%
+  group_by(sstation)%>%
+  summarise(casual.fraction=mean(client=="Casual"))
+Stations <- Stations%>%
+  left_join(casualTrips,by=c("name"="sstation"))
+```
 
+```{r}
+ggmap(myMap)+
+  geom_point(data=Stations,aes(x=long, y=lat, color=casual.fraction,size=casual.fraction),alpha=0.6)+
+  scale_colour_gradient(low="#323FFA",high="#D50000")+
+  labs(title="Casual Client Departures from Each Stations",subtitle="Washington D.C. Rental Bikes",
+       color="Fraction of Casual Clients",size="Fraction of Casual Clients")
+```
+
+We could see that the areas with most percentage of casual clients are near the parks and tourist areas. 
 
 ## Filtering join practice: Spatiotemporal patterns
 
@@ -329,6 +460,43 @@ Only 14.4% of the trips in our data are carried out by casual users.^[We can com
 (a) Make a table with the ten station-date combinations (e.g., 14th & V St., 2014-10-14) with the highest number of departures, sorted from most departures to fewest.
 (b) Use a join operation to make a table with only those trips whose departures match those top ten station-date combinations from part (a).
 (c) Group the trips you filtered out in part (b) by client type and `wday` (weekend/weekday), and count the total number of trips in each of the four groups. Interpret your results.
-
 ```
 
+a.
+
+```{r}
+Trips <- Trips %>%
+  mutate(sday=date(sdate))
+top10Dep <- Trips%>%
+  group_by(sstation,sday)%>%
+  summarise(totalDep=n())%>%
+  arrange(desc(totalDep))%>%
+  head(n=10)
+knitr::kable(
+  top10Dep[,],caption="Top 10 Departures By Day"
+)
+```
+
+b.
+
+```{r}
+top10Trips <- Trips %>%
+  semi_join(top10Dep,by=c("sstation"="sstation","sday"="sday"))
+```
+
+c.
+
+```{r}
+top10Client <- top10Trips %>%
+  group_by(client,wday)%>%
+  summarise(totalDep=n())
+```
+
+```{r}
+ggplot(top10Client,aes(x=client,y=totalDep,fill=wday))+
+  geom_col(position="stack")+
+  labs(title="Spatiotemporal Renting Pattern",subtitle="For Top 10 Departures Location & Day", 
+       fill="Day Type",x="Client Type",y="Total Departures")
+```
+
+Among the top 10 combination of day & location departures, most clients are registered and rent bikes on weekday. Casual clients in this group mostly rent bike during weekend.

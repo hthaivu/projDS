@@ -1,6 +1,6 @@
 ---
 title: "| Projects in Data Science    \n| Activity A2c: Univariate and Bivariate Visualization\n"
-author: "hoang Anh Thai Vu"
+author: "Hoang Anh Thai Vu"
 output:
   bookdown::tufte_html2:
     number_sections: no
