@@ -1,0 +1,20 @@
+---
+title: "|Project in Data Science \n| P1: Project Brainstorming \n"
+author: "Hoang Anh Thai Vu"
+date: "September 13, 2017"
+output: html_document
+---
+
+## Idea 1: Measuring Negativity in the Financial World
+
+Broad area of research: financial prediction, credit/stock market analysis, world economy
+
+Example to focus on: Energy sector. Energy companies require lots of capital for their project, they relies heavily on the financial world. Perhaps it is possible to draw out the correlation between financial indications to predict the energy price fluctuation. Some good data sets to look at would be credit default swap, stock prices, bond prices. 
+
+Alternative: it might be possible to look at terrorism data and military conflict to draw insight into the energy sector.
+
+## Idea 2: Visualizing the World Conflict
+
+Broad are of research: world conflicts, sentimental analysis, global economy, negativity
+
+Example to focus on: A real time digital map of conflict. Countries are often in conflict with each other, whether it is regarding politics, trades, religions or military. I aspire to visualize this on a digital map that colors different kinds of conflict differently, and the color intensity reflect how significant the conflict is. Taking it a step further, this could use news and other real time data to update this conflict map, and could go as detail as regional conflict within countries.
